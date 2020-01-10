@@ -50,7 +50,7 @@ app.post('/signin',(req,res)=>{
     if(req.body.email === database.users[0].email &&
         req.body.password === database.users[0].password){
             isSuccess = true;
-        res.json('success');
+        res.json(database.users[0]);
     }
     if(!isSuccess){
         res.status('404').json('fail');
@@ -62,7 +62,6 @@ app.post('/register',(req,res)=>{
     database.users.push( {
         "id": "134",
         "email": email,
-        "password": password,
         "name": name,
         "entries": 0,
         "joined": new Date()
@@ -70,16 +69,19 @@ app.post('/register',(req,res)=>{
     res.json(database.users[database.users.length-1]);
 });
 
-app.post('/image',(req,res)=>{
-    const {id} = req.params;
-
+app.put('/image',(req,res)=>{
+    const {id} = req.body;
+    let isFound = false;
     database.users.forEach(user =>{
         if(user.id === id){
+            isFound = true;
             user.entries++;
             return res.json(user.entries);
         }
     });
-    res.status('404').json('not found');
+    if(!isFound){
+        res.status('404').json('not found');
+    }
 });
 
 app.listen(3001,()=>{
