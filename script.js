@@ -16,7 +16,7 @@ const db = knex({
     }
   });
 
-db.select('*').from('users').then(data=>{console.log(data)});
+// db.select('*').from('users').then(data=>{console.log(data)});
 
 app.use(express.json());
 app.use(cors());
@@ -50,53 +50,75 @@ app.get('/',(req,res)=>{
 app.get('/profile/:id',(req, res)=>{
     const {id} = req.params;
 
-    database.users.forEach(user =>{
-        if(user.id === id){
-            return res.json(user);
+    db.select('*').from('users').where({
+        id: id
+    }).then(user=>{
+        if(user.length){
+            res.json(user[0]);
+        }else{
+            res.status('404').json('user not found');
         }
-    });
-    res.status('404').json('user not found');
+    }).catch(err=>res.json('error getting the user'));
 });
 
 app.post('/signin',(req,res)=>{
-    let isSuccess = false;
-    if(req.body.email === database.users[0].email &&
-        req.body.password === database.users[0].password){
-            isSuccess = true;
-        res.json(database.users[0]);
-    }
-    if(!isSuccess){
-        res.status('404').json('fail');
-    }
+   db.select('email','hash')
+   .from('login')
+   .where('email','=',req.body.email)
+   .then(data =>{
+       if(bcrypt.compareSync(req.body.password,data[0].hash)){
+           return db.select('*')
+           .from('users')
+           .where('email','=',req.body.email)
+           .then(user=>{
+               res.json(user[0]);
+           })
+           .catch(err=>res.status(400).json('unable to get the user'));
+       }else{
+           res.status(400).json('WRONG CREDENTIALS')
+       }
+   })
+   .catch(err =>{
+       res.status(400).json('wrong credentials');
+   })
+    
 });
 
 app.post('/register',(req,res)=>{
     const {email, password, name} = req.body;
-    db('users')
-    .returning('*')
-    .insert({
-        email: email,
-        name: name,       
-        joined: new Date()
-    }).then(users=>{
-        res.json(users[0]);
-    }).catch(err=>res.status(400).json('unable to join'));
+    const hash = bcrypt.hashSync(password);
+    db.transaction(trx=>{
+        trx.insert({
+            email: email,
+            hash: hash
+        })
+        .into('login')
+        .returning('email')
+        .then(loginEmail => {
+            return trx('users')
+            .returning('*')
+            .insert({
+                email: loginEmail[0],
+                name: name,       
+                joined: new Date()
+            }).then(users=>{
+                res.json(users[0]);
+            }).catch(err=>res.status(400).json('unable to join'));
+        })
+        .then(trx.commit)
+        .catch(trx.rollback);
+    });
+    
     
 });
 
 app.put('/image',(req,res)=>{
     const {id} = req.body;
-    let isFound = false;
-    database.users.forEach(user =>{
-        if(user.id === id){
-            isFound = true;
-            user.entries++;
-            return res.json(user.entries);
-        }
-    });
-    if(!isFound){
-        res.status('404').json('not found');
-    }
+    db('users')
+    .where('id','=',id)
+    .increment('entries',1).then(entries=>{
+        res.json(entries);
+    }).catch(err=> res.json('unable to find entries'));
 });
 
 app.listen(3001,()=>{
