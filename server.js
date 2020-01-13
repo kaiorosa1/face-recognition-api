@@ -22,27 +22,6 @@ app.use(express.json());
 app.use(cors());
 
 
-const database ={
-  users:  [
-        {
-            "id": "123",
-            "email": "john@gmail.com",
-            "password": "cool",
-            "name": "John",
-            "entries": 0,
-            "joined": new Date()
-        },
-        {
-            "id": "124",
-            "email": "brenda@gmail.com",
-            "password": "bunnies",
-            "name": "Brenda",
-            "entries": 0,
-            "joined": new Date()
-        }
-    ]
-}
-
 app.get('/',(req,res)=>{
     res.send(database.users);
 });
