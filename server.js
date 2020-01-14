@@ -100,8 +100,8 @@ app.put('/image',(req,res)=>{
     }).catch(err=> res.json('unable to find entries'));
 });
 
-app.listen(3001,()=>{
-    console.log("Server being listened on port 3001");
+app.listen(process.env.PORT || 3000,()=>{
+    console.log(`Server being listened on port ${process.env.PORT}`);
 });
 
 /* 
